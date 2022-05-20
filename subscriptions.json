@@ -1,0 +1,22 @@
+[
+    {
+        "id": "chicago_tribune_business",
+        "name": "Chicago Tribune: Business",
+        "url": "https://www.chicagotribune.com/arcio/rss/category/business/"
+    },
+    {
+        "id": "chicago_tribune_sports",
+        "name": "Chicago Tribune: Sports",
+        "url": "https://www.chicagotribune.com/arcio/rss/category/sports/"
+    },
+    {
+        "id": "nytimes_business",
+        "name": "New York Times: Business",
+        "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml"
+    },
+    {
+        "id": "nytimes_technology",
+        "name": "New York Times: Technology",
+        "url": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"
+    }
+]
