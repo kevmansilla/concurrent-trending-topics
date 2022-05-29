@@ -1,5 +1,6 @@
 package edu.famaf.paradigmas
 
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.PostStop
@@ -14,8 +15,19 @@ object Supervisor {
   def apply(): Behavior[SupervisorCommand] = Behaviors.setup(context => new Supervisor(context))
 
   sealed trait SupervisorCommand
-  final case class LoadSubscriptions(subscriptions: List[SubscriptionApp.Feed])
-    extends SupervisorCommand
+  final case class Subs (
+    id: String,
+    name: String, 
+    url: String
+  ) extends SupervisorCommand
+
+  final case class answer (
+    id: String,
+    name: String,
+    feed: Seq[String]
+  ) extends SupervisorCommand
+
+  final case class Stop() extends SupervisorCommand
 }
 
 class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
@@ -26,18 +38,19 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
 
   override def onMessage(msg: SupervisorCommand): Behavior[SupervisorCommand] = {
     msg match {
-      case LoadSubscriptions(subscriptions) => {
-        // TODO: Fix this, move to the corresponding module
-        subscriptions.foreach { feed =>
-          // TODO: Parse the XML with the feed content
-          val feedTitle = s"News from: ${feed.name}"
-          val feedContent = "Content of the feed"
-
-          val fileWriter = new PrintWriter(new File(s"./output/${feed.id}.txt"))
-          fileWriter.write(s"${feedTitle}\n\n${feedContent}")
-          fileWriter.close()
-        }
-
+      case Subs(id,name,url) => {
+        val new_subscription = ActorSystem[Site.SiteCommand](Site(), "site")
+        new_subscription ! Site.Httpget(id,name,url)
+        new_subscription ! Site.Stop()
+        Behaviors.same
+      }
+      case answer(id,name,feed) => {
+        val storage = ActorSystem[Storage.StorageCommand](Storage(), "storage")
+        storage ! Storage.store(id,name,feed)
+        storage ! Storage.Stop()
+        Behaviors.same
+      }
+      case Stop() => {
         Behaviors.stopped
       }
     }

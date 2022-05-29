@@ -5,6 +5,7 @@ import org.json4s.JsonDSL._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.slf4j.{Logger, LoggerFactory}
+import scala.io._
 
 object SubscriptionApp extends App {
   implicit val formats = DefaultFormats
@@ -12,15 +13,26 @@ object SubscriptionApp extends App {
   val logger: Logger = LoggerFactory.getLogger("edu.famaf.paradigmas.SubscriptionApp")
   val subscriptionsFilePath: String = "./subscriptions.json"
 
-  case class Feed(id: String, name: String, url: String)
+  case class Subscription(
+    id: String,
+    name: String, 
+    url: String
+  )
 
-  private def readSubscriptions(filename: String): List[Feed] = {
-    List(
-      Feed("chicago_tribune_business", "Chicago Tribune: Business", "https://www.chicagotribune.com/arcio/rss/category/business/"),
-      Feed("nytimes_business", "New York Times: Business", "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml")
-    )
+  private def readSubscriptions(filename: String): List[Subscription] = {
+    println("reading subscriptions")
+    val JsonContent = Source.fromFile(filename)
+    (parse(JsonContent.mkString)).extract[List[Subscription]]
   }
 
   val system = ActorSystem[Supervisor.SupervisorCommand](Supervisor(), "subscription-app")
-  system ! Supervisor.LoadSubscriptions(readSubscriptions(subscriptionsFilePath))
+  val readSub = readSubscriptions(subscriptionsFilePath)
+  readSub.foreach { s => 
+    system ! Supervisor.Subs (
+      s.id,
+      s.name,
+      s.url,
+    )
+  }
+  system ! Supervisor.Stop()
 }
