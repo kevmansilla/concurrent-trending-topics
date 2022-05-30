@@ -34,5 +34,6 @@ object SubscriptionApp extends App {
       s.url,
     )
   }
+  Thread.sleep(1000)
   system ! Supervisor.Stop()
 }

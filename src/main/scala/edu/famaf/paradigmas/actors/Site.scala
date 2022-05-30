@@ -35,10 +35,8 @@ object Site {
   final case class Httpget(
     id: String,
     name: String,
-    url: String 
+    url: String,
   ) extends SiteCommand
-
-  final case class Stop() extends SiteCommand
 
 }
 
@@ -46,30 +44,20 @@ class Site(context: ActorContext[Site.SiteCommand])
     extends AbstractBehavior[Site.SiteCommand](context) {
   context.log.info("Site Started")
   import Site._
+  var word = "%s".r
 
   override def onMessage(msg: SiteCommand): Behavior[SiteCommand] = {
     msg match {
       case Httpget(id,name,url) => {
-        val parsed = ActorSystem[Feed.FeedCommand](Feed(), "feed")
+        val parsed = context.spawn(Feed(),s"obtain_text:${id}")
         val request = new Url
         request.getRequest(url) match {
           case Success(x) => parsed ! Feed.ParseRequest(id,name,url,x)
           case Failure(e) => ""
-        }
-        parsed ! Feed.Stop()        
+        }       
         Behaviors.same
-      }
-      case Stop() => {
-        Behaviors.stopped
       }
     }
   }
-
-  override def onSignal: PartialFunction[Signal, Behavior[SiteCommand]] = {
-    case PostStop =>
-      context.log.info("Site Stopped")
-      this
-  }
 }
-
 

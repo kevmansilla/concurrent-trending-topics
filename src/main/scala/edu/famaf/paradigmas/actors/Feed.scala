@@ -51,8 +51,6 @@ object Feed {
     feed: String
   ) extends FeedCommand
 
-  final case class Stop() extends FeedCommand
-
 }
 
 class Feed(context: ActorContext[Feed.FeedCommand])
@@ -64,21 +62,12 @@ class Feed(context: ActorContext[Feed.FeedCommand])
     msg match {
       case ParseRequest(id,name,url,feed) => {
       	val frequest = new FeedRequester 
-      	val parsed = ActorSystem[Supervisor.SupervisorCommand](Supervisor(), "supervisor")
+      	val parsed = context.spawn(Supervisor(), s"send_to_store:${id}")
         val text = frequest.parserRequest(feed)
         parsed ! Supervisor.answer(id,name,text)
-        parsed ! Supervisor.Stop()
         Behaviors.same
-      }
-      case Stop() => {
-        Behaviors.stopped
       }
     }
   }
 
-  override def onSignal: PartialFunction[Signal, Behavior[FeedCommand]] = {
-    case PostStop =>
-      context.log.info("Feed Stopped")
-      this
-  }
 }

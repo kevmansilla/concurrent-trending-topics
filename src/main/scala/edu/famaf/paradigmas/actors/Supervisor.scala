@@ -28,6 +28,7 @@ object Supervisor {
   ) extends SupervisorCommand
 
   final case class Stop() extends SupervisorCommand
+  final case class SendFeed(feed: String) extends SupervisorCommand
 }
 
 class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
@@ -39,15 +40,13 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
   override def onMessage(msg: SupervisorCommand): Behavior[SupervisorCommand] = {
     msg match {
       case Subs(id,name,url) => {
-        val new_subscription = ActorSystem[Site.SiteCommand](Site(), "site")
+        val new_subscription = context.spawn(Site(), s"New_Sub_${id}")
         new_subscription ! Site.Httpget(id,name,url)
-        new_subscription ! Site.Stop()
         Behaviors.same
       }
       case answer(id,name,feed) => {
-        val storage = ActorSystem[Storage.StorageCommand](Storage(), "storage")
+        val storage = context.spawn(Storage(), s"New_File_${id}")
         storage ! Storage.store(id,name,feed)
-        storage ! Storage.Stop()
         Behaviors.same
       }
       case Stop() => {

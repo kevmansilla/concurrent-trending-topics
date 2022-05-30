@@ -22,7 +22,6 @@ object Storage {
     name: String,
     feed: Seq[String]
   ) extends StorageCommand
-  final case class Stop() extends StorageCommand
 }
 
 class Storage(context: ActorContext[Storage.StorageCommand])
@@ -41,15 +40,6 @@ class Storage(context: ActorContext[Storage.StorageCommand])
         fileWriter.close()
         Behaviors.same
       }
-      case Stop() => {
-        Behaviors.stopped
-      }
     }
-  }
-
-  override def onSignal: PartialFunction[Signal, Behavior[StorageCommand]] = {
-    case PostStop =>
-      context.log.info("Storage Stopped")
-      this
   }
 }
