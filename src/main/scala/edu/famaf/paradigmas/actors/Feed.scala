@@ -31,11 +31,11 @@ class FeedRequester {
   def parserRequest(url: String): Seq[String] = {
     val xmlContent = XML.loadString(url)
     val texts = (xmlContent \\ "item").map {item =>
-    	(item \ "title").text + " " + (item \ "description").text
+      (item \ "title").text + " " + (item \ "description").text
     }
     cleanContent(texts) match {
-    	case Success(x) => x
-    	case Failure(e) => List()
+      case Success(x) => x
+      case Failure(e) => List()
     }
 
   }
@@ -45,8 +45,8 @@ object Feed {
   def apply(): Behavior[FeedCommand] = Behaviors.setup(context => new Feed(context))
   sealed trait FeedCommand
   final case class ParseRequest(
-  	id: String,
-  	name: String,
+    id: String,
+    name: String,
     url: String,
     feed: String,
     replyTo : ActorRef[FeedResponse]
@@ -65,12 +65,11 @@ class Feed(context: ActorContext[Feed.FeedCommand])
   override def onMessage(msg: FeedCommand): Behavior[FeedCommand] = {
     msg match {
       case ParseRequest(id,name,url,feed,replyTo) => {
-      	val frequest = new FeedRequester 
+        val frequest = new FeedRequester
         val answer = frequest.parserRequest(feed)
         replyTo ! FeedMessage(answer)
         Behaviors.same
       }
     }
   }
-
 }

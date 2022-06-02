@@ -17,11 +17,7 @@ object Storage {
   def apply(): Behavior[StorageCommand] = Behaviors.setup(context => new Storage(context))
 
   sealed trait StorageCommand
-  final case class store (
-  	id: String,
-    name: String,
-    feed: Seq[String]
-  ) extends StorageCommand
+  final case class Store(id: String, name: String,feed: Seq[String]) extends StorageCommand
 }
 
 class Storage(context: ActorContext[Storage.StorageCommand])
@@ -32,8 +28,8 @@ class Storage(context: ActorContext[Storage.StorageCommand])
 
   override def onMessage(msg: StorageCommand): Behavior[StorageCommand] = {
     msg match {
-      case store(id,name,feed) => {
-      	val feedTitle = s"News from: ${name}"
+      case Store(id,name,feed) => {
+        val feedTitle = s"News from: ${name}"
         val feedContent = feed
         context.log.info(s"${feedTitle}\n\n${feedContent}")
         Behaviors.same

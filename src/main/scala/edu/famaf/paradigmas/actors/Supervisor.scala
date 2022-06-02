@@ -20,7 +20,7 @@ object Supervisor {
   sealed trait SupervisorCommand
   final case class Subs (
     id: String,
-    name: String, 
+    name: String,
     url: String
   ) extends SupervisorCommand
 
@@ -40,7 +40,7 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
     msg match {
       case SiteResponse(id,name,feed) => {
         val store = context.spawn(Storage(), s"New_File_${id}.txt")
-        store ! Storage.store(id,name,feed)
+        store ! Storage.Store(id,name,feed)
         Behaviors.same
       }
       case SiteFailed(msg) => {

@@ -63,7 +63,7 @@ class Site(context: ActorContext[Site.SiteCommand])
       }
       case FeedFailed(msg) => {
         context.log.error(msg)
-        Behaviors.same        
+        Behaviors.same
       }
       case Httpget(id,name,url,replyTo) => {
         val feed = context.spawn(Feed(),s"New_Feed_${id}")
@@ -76,7 +76,7 @@ class Site(context: ActorContext[Site.SiteCommand])
               }
           }
           case Failure(e) => context.log.error(e.getMessage)
-        }    
+        }
         Behaviors.same
       }
     }

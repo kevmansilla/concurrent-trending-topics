@@ -15,7 +15,7 @@ object SubscriptionApp extends App {
 
   case class Subscription(
     id: String,
-    name: String, 
+    name: String,
     url: String
   )
 
@@ -27,13 +27,10 @@ object SubscriptionApp extends App {
 
   val system = ActorSystem[Supervisor.SupervisorCommand](Supervisor(), "subscription-app")
   val readSub = readSubscriptions(subscriptionsFilePath)
-  readSub.foreach { s => 
-    system ! Supervisor.Subs (
-      s.id,
-      s.name,
-      s.url,
-    )
+  readSub.foreach { s =>
+    system ! Supervisor.Subs(s.id, s.name, s.url)
   }
-  Thread.sleep(10000)
+  val SLEEP_TIME = 10000
+  Thread.sleep(SLEEP_TIME)
   system ! Supervisor.Stop()
 }
