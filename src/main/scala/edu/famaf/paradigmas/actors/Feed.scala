@@ -18,6 +18,8 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.LoggerOps
+import scala.concurrent.duration._
+import akka.util.Timeout
 
 class FeedRequester {
 
@@ -39,8 +41,6 @@ class FeedRequester {
   }
 }
 
-
-
 object Feed {
   def apply(): Behavior[FeedCommand] = Behaviors.setup(context => new Feed(context))
   sealed trait FeedCommand
@@ -48,8 +48,12 @@ object Feed {
   	id: String,
   	name: String,
     url: String,
-    feed: String
+    feed: String,
+    replyTo : ActorRef[FeedResponse]
   ) extends FeedCommand
+
+  sealed trait FeedResponse
+  final case class FeedMessage(msg: Seq[String]) extends FeedResponse
 
 }
 
@@ -60,11 +64,10 @@ class Feed(context: ActorContext[Feed.FeedCommand])
 
   override def onMessage(msg: FeedCommand): Behavior[FeedCommand] = {
     msg match {
-      case ParseRequest(id,name,url,feed) => {
+      case ParseRequest(id,name,url,feed,replyTo) => {
       	val frequest = new FeedRequester 
-      	val parsed = context.spawn(Supervisor(), s"send_to_store:${id}")
-        val text = frequest.parserRequest(feed)
-        parsed ! Supervisor.answer(id,name,text)
+        val answer = frequest.parserRequest(feed)
+        replyTo ! FeedMessage(answer)
         Behaviors.same
       }
     }
