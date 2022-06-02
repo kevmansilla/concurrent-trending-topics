@@ -8,4 +8,6 @@ Por otra parte, *Site* se encarga de hacer el pedido HTTP a un URL, *feed* parse
 
 ![estructura1](imagenes/struc1.png)
 
+Para la parte 3, cambiamos la estructura de forma que nos permita implementar un *request-responde*. Entonces el resultado de *Feed* se retorna a *Site* y luego se pasa al supervisor, donde este último lo guarda en disco con *storage* como se puede observar en la siguiente imagen.
+
 ![estructura2](imagenes/struc2.png)
