@@ -31,7 +31,9 @@ class Storage(context: ActorContext[Storage.StorageCommand])
       case Store(id,name,feed) => {
         val feedTitle = s"News from: ${name}"
         val feedContent = feed
-        context.log.info(s"${feedTitle}\n\n${feedContent}")
+        val fileWriter = new PrintWriter(new File(s"./output/${id}.txt"))
+        fileWriter.write(s"${feedTitle}\n\n${feedContent}")
+        fileWriter.close()
         Behaviors.same
       }
     }
