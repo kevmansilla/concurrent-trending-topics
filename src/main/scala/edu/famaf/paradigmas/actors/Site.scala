@@ -1,6 +1,5 @@
 package edu.famaf.paradigmas
 
-import scalaj.http.{Http, HttpResponse}
 import scala.xml.XML
 import scala.io.Source
 import scala.util.{Try,Success,Failure}
@@ -21,18 +20,16 @@ import akka.actor.typed.scaladsl.LoggerOps
 import scala.concurrent.duration._
 import akka.util.Timeout
 
-class Url {
+import dispatch._, Defaults._
+import scala.concurrent.Future
 
-  def getRequest(url: String): Try[String] = {
-    val CONN_TIMEOUT = 2000
-    val READ_TIMEOUT = 5000
-    Try(Http(url).timeout(connTimeoutMs = CONN_TIMEOUT, readTimeoutMs = READ_TIMEOUT).asString.body)
-  }
+class Url {
+  def getRequest(urlr: String): Future[String] = Http.default(url(urlr) OK as.String) 
 }
 
 
 object Site {
-  def apply(): Behavior[SiteCommand] = Behaviors.setup(context => new Site(context))
+  def apply(): Behavior[SiteCommand] = Behaviors.setup((context) => new Site(context))
   sealed trait SiteCommand
   final case class Httpget(
     id: String,
@@ -42,6 +39,13 @@ object Site {
   ) extends SiteCommand
   final case class FeedResponse(msg: Seq[String], replyTo: ActorRef[SiteResponse]) extends SiteCommand
   final case class FeedFailed(msg: String) extends SiteCommand
+  final case class FeedSend(
+    id: String,
+    name: String,
+    url: String,
+    http: String,
+    replyTo : ActorRef[SiteResponse]
+  ) extends SiteCommand
 
   sealed trait SiteResponse
   final case class SiteMessage(text: Seq[String]) extends SiteResponse
@@ -65,21 +69,22 @@ class Site(context: ActorContext[Site.SiteCommand])
         context.log.error(msg)
         Behaviors.same
       }
-      case Httpget(id,name,url,replyTo) => {
+      case FeedSend(id,name,url,http,replyTo) => {
         val feed = context.spawn(Feed(),s"New_Feed_${id}")
+        context.ask(feed, Feed.ParseRequest(id,name,url,http,_)) {
+          case Success(Feed.FeedMessage(text)) => FeedResponse(text,replyTo)
+          case Failure(e) => FeedFailed(e.getMessage)
+        }
+        Behaviors.same
+      }
+      case Httpget(id,name,url,replyTo) => {
         val request = new Url
-        request.getRequest(url) match {
-          case Success(x) => {
-            context.ask(feed, Feed.ParseRequest(id,name,url,x,_)) {
-              case Success(Feed.FeedMessage(text)) => FeedResponse(text,replyTo)
-              case Failure(e) => FeedFailed(e.getMessage)
-              }
-          }
-          case Failure(e) => context.log.error(e.getMessage)
+        context.pipeToSelf(request.getRequest(url)) {
+          case Success(http) => FeedSend(id,name,url,http,replyTo)
+          case Failure(e) => FeedFailed(e.getMessage)
         }
         Behaviors.same
       }
     }
   }
 }
-
