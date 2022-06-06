@@ -23,33 +23,19 @@ import akka.util.Timeout
 import dispatch._, Defaults._
 import scala.concurrent.Future
 
-class Url {
-  def getRequest(urlr: String): Future[String] = Http.default(url(urlr) OK as.String) 
-}
-
-
 object Site {
   def apply(): Behavior[SiteCommand] = Behaviors.setup((context) => new Site(context))
   sealed trait SiteCommand
-  final case class Httpget(
-    id: String,
-    name: String,
-    url: String,
-    replyTo: ActorRef[SiteResponse]
-  ) extends SiteCommand
-  final case class FeedResponse(msg: Seq[String], replyTo: ActorRef[SiteResponse]) extends SiteCommand
+  final case class Httpget(id: String, name: String, url: String,
+    replyTo: ActorRef[SiteResponse]) extends SiteCommand
+  final case class FeedResponse(msg: Seq[String], replyTo: ActorRef[SiteResponse])
+    extends SiteCommand
   final case class FeedFailed(msg: String) extends SiteCommand
-  final case class FeedSend(
-    id: String,
-    name: String,
-    url: String,
-    http: String,
-    replyTo : ActorRef[SiteResponse]
-  ) extends SiteCommand
+  final case class FeedSend(id: String, name: String, url: String, http: String,
+     replyTo : ActorRef[SiteResponse]) extends SiteCommand
 
   sealed trait SiteResponse
   final case class SiteMessage(text: Seq[String]) extends SiteResponse
-
 }
 
 class Site(context: ActorContext[Site.SiteCommand])
@@ -59,9 +45,11 @@ class Site(context: ActorContext[Site.SiteCommand])
   implicit val timeout: Timeout = 3.seconds
   import Site._
 
+  private def getRequest(urlr: String): Future[String] = Http.default(url(urlr) OK as.String)
+
   override def onMessage(msg: SiteCommand): Behavior[SiteCommand] = {
     msg match {
-      case FeedResponse(msg,replyTo) => {
+      case FeedResponse(msg, replyTo) => {
         replyTo ! SiteMessage(msg)
         Behaviors.same
       }
@@ -69,18 +57,17 @@ class Site(context: ActorContext[Site.SiteCommand])
         context.log.error(msg)
         Behaviors.same
       }
-      case FeedSend(id,name,url,http,replyTo) => {
+      case FeedSend(id, name, url, http, replyTo) => {
         val feed = context.spawn(Feed(),s"New_Feed_${id}")
-        context.ask(feed, Feed.ParseRequest(id,name,url,http,_)) {
-          case Success(Feed.FeedMessage(text)) => FeedResponse(text,replyTo)
+        context.ask(feed, Feed.ParseRequest(id, name, url, http, _)) {
+          case Success(Feed.FeedMessage(text)) => FeedResponse(text, replyTo)
           case Failure(e) => FeedFailed(e.getMessage)
         }
         Behaviors.same
       }
-      case Httpget(id,name,url,replyTo) => {
-        val request = new Url
-        context.pipeToSelf(request.getRequest(url)) {
-          case Success(http) => FeedSend(id,name,url,http,replyTo)
+      case Httpget(id, name, url, replyTo) => {
+        context.pipeToSelf(getRequest(url)) {
+          case Success(http) => FeedSend(id, name, url, http, replyTo)
           case Failure(e) => FeedFailed(e.getMessage)
         }
         Behaviors.same

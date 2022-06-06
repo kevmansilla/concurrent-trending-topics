@@ -13,11 +13,7 @@ object SubscriptionApp extends App {
   val logger: Logger = LoggerFactory.getLogger("edu.famaf.paradigmas.SubscriptionApp")
   val subscriptionsFilePath: String = "./subscriptions.json"
 
-  case class Subscription(
-    id: String,
-    name: String,
-    url: String
-  )
+  case class Subscription(id: String, name: String, url: String)
 
   private def readSubscriptions(filename: String): List[Subscription] = {
     println("reading subscriptions")

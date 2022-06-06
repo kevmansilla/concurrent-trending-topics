@@ -20,15 +20,16 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.LoggerOps
 import scala.concurrent.duration._
 import akka.util.Timeout
+object Feed {
+  def apply(): Behavior[FeedCommand] = Behaviors.setup(context => new Feed(context))
+  sealed trait FeedCommand
 
-class FeedRequester {
-
-  def cleanContent(texts: Seq[String]): Try[Seq[String]] = {
+  private def cleanContent(texts: Seq[String]): Try[Seq[String]] = {
     val word = "(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]".r
     Try(texts.map(content => word.replaceAllIn(content, " ")))
   }
 
-  def parserRequest(url: String): Seq[String] = {
+  private def parserRequest(url: String): Seq[String] = {
     val xmlContent = XML.loadString(url)
     val texts = (xmlContent \\ "item").map {item =>
       (item \ "title").text + " " + (item \ "description").text
@@ -39,22 +40,11 @@ class FeedRequester {
     }
 
   }
-}
-
-object Feed {
-  def apply(): Behavior[FeedCommand] = Behaviors.setup(context => new Feed(context))
-  sealed trait FeedCommand
-  final case class ParseRequest(
-    id: String,
-    name: String,
-    url: String,
-    feed: String,
-    replyTo : ActorRef[FeedResponse]
-  ) extends FeedCommand
+  final case class ParseRequest(id: String, name: String, url: String, feed: String,
+     replyTo : ActorRef[FeedResponse]) extends FeedCommand
 
   sealed trait FeedResponse
   final case class FeedMessage(msg: Seq[String]) extends FeedResponse
-
 }
 
 class Feed(context: ActorContext[Feed.FeedCommand])
@@ -64,9 +54,8 @@ class Feed(context: ActorContext[Feed.FeedCommand])
 
   override def onMessage(msg: FeedCommand): Behavior[FeedCommand] = {
     msg match {
-      case ParseRequest(id,name,url,feed,replyTo) => {
-        val frequest = new FeedRequester
-        val answer = frequest.parserRequest(feed)
+      case ParseRequest(id, name, url, feed, replyTo) => {
+        val answer = parserRequest(feed)
         replyTo ! FeedMessage(answer)
         Behaviors.same
       }

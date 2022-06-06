@@ -18,14 +18,11 @@ object Supervisor {
   def apply(): Behavior[SupervisorCommand] = Behaviors.setup(context => new Supervisor(context))
 
   sealed trait SupervisorCommand
-  final case class Subs (
-    id: String,
-    name: String,
-    url: String
-  ) extends SupervisorCommand
-
+  final case class Subs (id: String, name: String, url: String) 
+    extends SupervisorCommand
   final case class Stop() extends SupervisorCommand
-  final case class SiteResponse(id: String,name: String,msg: Seq[String]) extends SupervisorCommand
+  final case class SiteResponse(id: String,name: String,msg: Seq[String]) 
+    extends SupervisorCommand
   final case class SiteFailed(msg: String) extends SupervisorCommand
 }
 
@@ -40,7 +37,7 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
     msg match {
       case SiteResponse(id,name,feed) => {
         val store = context.spawn(Storage(), s"New_File_${id}.txt")
-        store ! Storage.Store(id,name,feed)
+        store ! Storage.Store(id, name, feed)
         Behaviors.same
       }
       case SiteFailed(msg) => {
@@ -50,7 +47,7 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
       case Subs(id,name,url) => {
         val site = context.spawn(Site(), s"New_Site_${id}")
         context.ask(site, Site.Httpget(id,name,url,_)) {
-          case Success(Site.SiteMessage(text)) => SiteResponse(id,name,text)
+          case Success(Site.SiteMessage(text)) => SiteResponse(id, name, text)
           case Failure(e) => SiteFailed(e.getMessage)
         }
         Behaviors.same
