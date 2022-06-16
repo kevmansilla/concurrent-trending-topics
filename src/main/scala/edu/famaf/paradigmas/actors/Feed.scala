@@ -20,12 +20,16 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.LoggerOps
 import scala.concurrent.duration._
 import akka.util.Timeout
+
 object Feed {
-  def apply(): Behavior[FeedCommand] = Behaviors.setup(context => new Feed(context))
+  def apply(): Behavior[FeedCommand] = Behaviors.setup(context =>
+    new Feed(context))
+
   sealed trait FeedCommand
 
   private def cleanContent(texts: Seq[String]): Try[Seq[String]] = {
-    val word = "(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]".r
+    val word =
+      "(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]".r
     Try(texts.map(content => word.replaceAllIn(content, " ")))
   }
 
@@ -40,8 +44,8 @@ object Feed {
     }
 
   }
-  final case class ParseRequest(id: String, name: String, url: String, feed: String,
-     replyTo : ActorRef[FeedResponse]) extends FeedCommand
+  final case class ParseRequest(id: String, name: String, url: String,
+   feed: String, replyTo: ActorRef[FeedResponse]) extends FeedCommand
 
   sealed trait FeedResponse
   final case class FeedMessage(msg: Seq[String]) extends FeedResponse

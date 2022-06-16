@@ -24,7 +24,9 @@ import dispatch._, Defaults._
 import scala.concurrent.Future
 
 object Site {
-  def apply(): Behavior[SiteCommand] = Behaviors.setup((context) => new Site(context))
+  def apply(): Behavior[SiteCommand] = Behaviors.setup((context) =>
+    new Site(context))
+
   sealed trait SiteCommand
   final case class Httpget(id: String, name: String, url: String,
     replyTo: ActorRef[SiteResponse]) extends SiteCommand
@@ -32,7 +34,7 @@ object Site {
     extends SiteCommand
   final case class FeedFailed(msg: String) extends SiteCommand
   final case class FeedSend(id: String, name: String, url: String, http: String,
-     replyTo : ActorRef[SiteResponse]) extends SiteCommand
+     replyTo: ActorRef[SiteResponse]) extends SiteCommand
 
   sealed trait SiteResponse
   final case class SiteMessage(text: Seq[String]) extends SiteResponse
@@ -45,7 +47,8 @@ class Site(context: ActorContext[Site.SiteCommand])
   implicit val timeout: Timeout = 3.seconds
   import Site._
 
-  private def getRequest(urlr: String): Future[String] = Http.default(url(urlr) OK as.String)
+  private def getRequest(urlr: String): Future[String] =
+    Http.default(url(urlr) OK as.String)
 
   override def onMessage(msg: SiteCommand): Behavior[SiteCommand] = {
     msg match {
@@ -58,7 +61,7 @@ class Site(context: ActorContext[Site.SiteCommand])
         Behaviors.same
       }
       case FeedSend(id, name, url, http, replyTo) => {
-        val feed = context.spawn(Feed(),s"New_Feed_${id}")
+        val feed = context.spawn(Feed(), s"New_Feed_${id}")
         context.ask(feed, Feed.ParseRequest(id, name, url, http, _)) {
           case Success(Feed.FeedMessage(text)) => FeedResponse(text, replyTo)
           case Failure(e) => FeedFailed(e.getMessage)

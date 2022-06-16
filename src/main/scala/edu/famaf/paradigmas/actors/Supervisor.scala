@@ -16,14 +16,16 @@ import scala.util.{Try,Success,Failure}
 import scala.collection.mutable.{Map=>Dict}
 
 object Supervisor {
-  def apply(): Behavior[SupervisorCommand] = Behaviors.setup(context => new Supervisor(context))
+  def apply(): Behavior[SupervisorCommand] = Behaviors.setup(context =>
+    new Supervisor(context))
 
   sealed trait SupervisorCommand
   final case class getAllFeeds() extends SupervisorCommand
-  final case class Subs (subs: List[SubscriptionApp.Subscription]) 
+  final case class Subs (subs: List[SubscriptionApp.Subscription])
     extends SupervisorCommand
   final case class Stop() extends SupervisorCommand
-  final case class SiteResponse(id: String, name: String, feed: Seq[String]) extends SupervisorCommand
+  final case class SiteResponse(id: String, name: String, feed: Seq[String])
+    extends SupervisorCommand
   final case class SiteFailed(msg: String) extends SupervisorCommand
 }
 
@@ -40,11 +42,11 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
 
   override def onMessage(msg: SupervisorCommand): Behavior[SupervisorCommand] = {
     msg match {
-      case SiteResponse(id,name,feed) => {
-        val params: List[String] = List(id,name)
-        feeds.put(params,feed)
+      case SiteResponse(id, name, feed) => {
+        val params: List[String] = List(id, name)
+        feeds.put(params, feed)
         context.log.info(s"Content from feed ${id}}")
-        if(sites.length == feeds.size+failed.length){
+        if(sites.length == feeds.size + failed.length){
           val store = context.spawn(Storage(), s"Store_files")
           store ! Storage.Store(feeds)
         }
@@ -53,7 +55,7 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
       case SiteFailed(msg) => {
         failed = msg :: failed
         context.log.error(msg)
-        if(sites.length == feeds.size+failed.length){
+        if(sites.length == feeds.size + failed.length){
           val store = context.spawn(Storage(), s"Store_files")
           store ! Storage.Store(feeds)
         }
@@ -64,9 +66,9 @@ class Supervisor(context: ActorContext[Supervisor.SupervisorCommand])
           s: SubscriptionApp.Subscription => {
             val site = context.spawn(Site(), s"New_Site_${s.id}")
             sites = site :: sites
-            context.ask(site, Site.Httpget(s.id,s.name,s.url,_)) {
+            context.ask(site, Site.Httpget(s.id, s.name, s.url, _)) {
               case Success(Site.SiteMessage(text)) => {
-                SiteResponse(s.id,s.name,text)
+                SiteResponse(s.id, s.name, text)
               }
               case Failure(e) => {
                 SiteFailed(e.getMessage)
